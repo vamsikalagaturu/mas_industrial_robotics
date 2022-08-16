@@ -2,6 +2,7 @@
 
 import rospy
 from std_msgs.msg import String
+from sensor_msgs.msg import JointState
 from mcr_manipulation_msgs.msg import GripperCommand
 import serial_interface
 
@@ -23,6 +24,13 @@ class GripperController:
 
             self.gripper_feedback_topic = rospy.get_param('~gripper_feedback_topic', '/arm_1/gripper_feedback')
             self.feedback_publisher = rospy.Publisher(self.gripper_feedback_topic, String, queue_size=1, latch=True)
+            
+            # Joint states publisher
+            self.join_state_pub = rospy.Publisher('joint_state', JointState, queue_size=1)
+
+            # Perform gripper close open at initialization
+            rospy.loginfo("Closing and opening the gripper at initialization.")
+            self.serial_msg.send({'command': 1})
 
         except rospy.ROSInterruptException as ex:
             rospy.logerr(ex)
@@ -50,11 +58,37 @@ class GripperController:
     
     def handle_msg(self):
         """Function for receiving feedback from serial and publishing to ros
+        
+        Assuming feedback is in the below json format:
+        {
+            "gripper_state": "open" or "closed",
+            
+            "gripper_right_motor_position": 0.0,
+            "gripper_right_motor_velocity": 0.0,
+            "gripper_right_motor_load": 0.0,
+
+            "gripper_left_motor_position": 0.0,
+            "gripper_left_motor_velocity": 0.0,
+            "gripper_left_motor_load": 0.0,
+
+            # other fields can be added here
+        }
         """
+
         msgs = self.serial_msg.receive()
         if msgs is not None:
             for msg in msgs:
                 self.feedback_publisher.publish(str(msg))
+                
+                # Publish joint states
+                joint_state = JointState()
+                joint_state.header.stamp = rospy.Time.now()
+                joint_state.name = ['gripper_right_motor', 'gripper_left_motor']
+                joint_state.position = [msg['gripper_right_motor_position'], msg['gripper_left_motor_position']]
+                joint_state.velocity = [msg['gripper_right_motor_velocity'], msg['gripper_left_motor_velocity']]
+                joint_state.effort = [msg['gripper_right_motor_load'], msg['gripper_left_motor_load']]
+                self.join_state_pub.publish(joint_state)
+
                 rospy.sleep(0.1)
 
 if __name__ == '__main__':
