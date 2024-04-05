@@ -46,7 +46,7 @@ class RTTObjectTracker():
         
         self.cvbridge = CvBridge()
         self.debug = debug_mode
-        self.pub_debug = rospy.Publisher("/mir_perception/multimodal_object_recognition/recognizer/rgb/output/rtt_debug_image", Image, queue_size=1)
+        self.pub_debug = rospy.Publisher("/mir_perception/multimodal_object_recognition/recognizer/rgb/output/debug_image", Image, queue_size=1)
         self.pub_pose = rospy.Publisher("/mir_perception/mir_rtt_detector/predicted_object_pose", PoseStamped, queue_size=1)
         self.pub_cropped_pc = rospy.Publisher("rtt/output/cropped_pc", PointCloud2, queue_size=1)
 
@@ -158,64 +158,36 @@ class RTTObjectTracker():
                                                 verbose=False,
                                             )
             # convert results to numpy array
-            predictions_np = predictions[0].boxes.numpy()
-            class_ids = predictions_np.cls
-            class_names = predictions[0].names
-            class_labels = [class_names[i] for i in class_ids]
-            class_scores = predictions_np.conf
-            class_bboxes = predictions_np.xyxy # x, y, w, h
+            predictions_cp = predictions[0].obb.cpu()
+            class_ids = predictions_cp.cls.numpy()
+            class_labels = [self.model.names[int(label)] for label in class_ids]
+            class_scores = predictions_cp.conf.numpy()
+            class_bboxes = predictions_cp.xyxyxyxy.numpy()
 
             return class_bboxes, class_scores, class_labels, predictions
         
-    def drawAxis(self, img, p_, q_, color, scale):
-        p = list(p_)
-        q = list(q_)
+    def get_orientation_obb(self, bbox):
+        # Calculate the length of each side of the bounding box
+        side_lengths = [np.linalg.norm(np.array(bbox[i]) - np.array(bbox[(i + 1) % 4])) for i in range(4)]
         
-        ## [visualization1]
-        angle = math.atan2(p[1] - q[1], p[0] - q[0]) # angle in radians
-        hypotenuse = math.sqrt((p[1] - q[1]) * (p[1] - q[1]) + (p[0] - q[0]) * (p[0] - q[0]))
+        # Find the index of the longest side
+        longest_side_index = np.argmax(side_lengths)
         
-        # Here we lengthen the arrow by a factor of scale
-        q[0] = p[0] - scale * hypotenuse * math.cos(angle)
-        q[1] = p[1] - scale * hypotenuse * math.sin(angle)
-        cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), color, 1, cv2.LINE_AA)
+        # Get the coordinates of the longest side
+        p1 = np.array(bbox[longest_side_index])
+        p2 = np.array(bbox[(longest_side_index + 1) % 4])
         
-        # create the arrow hooks
-        p[0] = q[0] + 9 * math.cos(angle + math.pi / 4)
-        p[1] = q[1] + 9 * math.sin(angle + math.pi / 4)
-        cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), color, 1, cv2.LINE_AA)
+        # Calculate the vector representing the longest side
+        side_vector = p2 - p1
         
-        p[0] = q[0] + 9 * math.cos(angle - math.pi / 4)
-        p[1] = q[1] + 9 * math.sin(angle - math.pi / 4)
-        cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), color, 1, cv2.LINE_AA)
-        return img
+        # Calculate the angle between the longest side and the horizontal axis
+        angle_rad = np.arctan2(side_vector[1], side_vector[0])
         
-    def get_orientation(self, pts, img):
-        ## [pca]
-        # Construct a buffer used by the pca analysis
-        sz = len(pts)
-        data_pts = np.empty((sz, 2), dtype=np.float64)
-        for i in range(data_pts.shape[0]):
-            data_pts[i,0] = pts[i,0,0]
-            data_pts[i,1] = pts[i,0,1]
+        # Ensure the angle is between 0 and 2*pi radians
+        angle_rad %= (2 * np.pi)
         
-        # Perform PCA analysis
-        mean = np.empty((0))
-        mean, eigenvectors, eigenvalues = cv2.PCACompute2(data_pts, mean)
-        
-        # Store the center of the object
-        cntr = (int(mean[0,0]), int(mean[0,1]))
-                
-        ## [visualization]
-        # Draw the principal components
-        # cv2.circle(img, cntr, 3, (255, 0, 255), 2)
-        p1 = (cntr[0] + 0.02 * eigenvectors[0,0] * eigenvalues[0,0], cntr[1] + 0.02 * eigenvectors[0,1] * eigenvalues[0,0])
-        p2 = (cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0])
-        img = self.drawAxis(img, cntr, p1, (255, 255, 0), 1)
-        # img = self.drawAxis(img, cntr, p2, (0, 0, 255), 5)
-        
-        angle = math.atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
-        return angle
+        return angle_rad
+    
     
     def circle_residuals(self, params, x, y):
         """
@@ -460,36 +432,16 @@ class RTTObjectTracker():
                 
                 bbox_img = None
 
-                # Fit a Ellipse to the centers of the bounding boxes
+                # Fit a Circle to the centers of the bounding boxes
                 for bbox, prob, label in zip(bboxes, probs, labels):
                     if label == self.object_name:
-                        # Calculate center of bounding box
-                        center_x = (int(bbox[0]) + int(bbox[2])) // 2
-                        center_y = (int(bbox[1]) + int(bbox[3])) // 2
+                        # Calculate center of oriented bounding box
+                        center_x = int((bbox[0][0] + bbox[1][0] + bbox[2][0] + bbox[3][0]) // 4)
+                        center_y = int((bbox[0][1] + bbox[1][1] + bbox[2][1] + bbox[3][1]) // 4)
                         center = np.array([center_x, center_y])
-
-                        # Convert image to grayscale
-                        bbox_img = cv_img[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
-                        if bbox_img is None:
-                            continue
-                        gray = cv2.cvtColor(bbox_img, cv2.COLOR_BGR2GRAY)
                         
-                        # Convert image to binary
-                        _, bw = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-                        
-                        # Find all the contours in the thresholded image
-                        contours, _ = cv2.findContours(bw, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-
-                        # get contour with maximum area
-                        max_area = 0
-                        best_cnt = None
-                        for cnt in contours:
-                            area = cv2.contourArea(cnt)
-                            if area > max_area:
-                                max_area = area
-                                best_cnt = cnt
-                        
-                        yaw_angle = self.get_orientation(best_cnt, bbox_img)
+                        # yaw_angle = self.get_orientation(best_cnt, bbox_img)
+                        yaw_angle = self.get_orientation_obb(bbox)
 
                         # Update object centers dictionary
                         if label not in self.center_point_position_list_wrt_base_link and center_y > 30:
@@ -525,6 +477,7 @@ class RTTObjectTracker():
                         #             writer.writerow([label, center[0], center[1], yaw, frame_time])
                         
                         if label in self.center_point_position_list_wrt_base_link:
+                            # TODO: Put number of object instances as a reconfigurable parameter.(best found value = 15)
                             if self.center_point_position_list_wrt_base_link[label] and len(self.center_point_position_list_wrt_base_link[label]) > 15:
                                 for label, centers_data in self.center_point_position_list_wrt_base_link.items():
                                     centers = np.array([center for center, _, _ in centers_data])
@@ -535,6 +488,7 @@ class RTTObjectTracker():
                                     # getting the point on the trajectory at 90 degrees in image plane [x-axis: left to right, y-axis: top to bottom]
                                     closest_x = xc - radius + 0.014
                                     closest_y = yc
+                                    # TODO: Plot closest_x and closest_y on debug image.
                                     
                                     if np.isnan(closest_x):
                                         continue
@@ -545,7 +499,8 @@ class RTTObjectTracker():
                                         self.object_pose[label].header.frame_id = "base_link"
                                         self.object_pose[label].pose.position.x = closest_x
                                         self.object_pose[label].pose.position.y = closest_y
-                                        self.object_pose[label].pose.position.z = -0.005
+                                        self.object_pose[label].pose.position.z = 0.010
+                                        # TODO: Object position height (0.010 for C069 lab) is added as fixed value. Write a method to get RTT table height.
                                                 
                                         if label == "M30" or label == "M20" or label == "BEARING2":
                                             self.object_pose[label].pose.orientation.x = 0.0
@@ -561,6 +516,7 @@ class RTTObjectTracker():
                                             self.object_pose[label].pose.orientation.w = orientation[3]
                                         self.orientation_estimation_complete = True
 
+                                    # TODO: Plot predicted yaw on debug image.
                                     if not self.rotational_speed_calculation_complete:
                                         # get rotational speed
                                         self.object_rotational_speed = self.calculate_rotational_speed(centers, frame_time_list, xc, yc, label)
@@ -575,6 +531,7 @@ class RTTObjectTracker():
                                             self.time_stamped_pose_msg.pose = self.object_pose[self.object_name]
                                             self.pub_pose.publish(self.object_pose[self.object_name])
                                             self.time_stamped_pose.publish(self.time_stamped_pose_msg)
+                                            # TODO: Add object pick time countdown in debug image [ha ha]
                                     else:
                                         self.time_estimation_complete = False
                     else:
@@ -582,10 +539,7 @@ class RTTObjectTracker():
                 if self.debug:
                     # Draw bounding boxes and labels of detections
                     debug_img = predictions[0].plot()
-
-                    # publish bbox and label
-                    if bbox_img is not None:
-                        self.publish_debug_img(bbox_img)
+                    self.publish_debug_img(debug_img)
 
                 end = time.time()
                 # rospy.loginfo("Time taken for detection: %s",str(end - start))
@@ -610,7 +564,7 @@ if __name__ == '__main__':
     dataset = rospy.get_param("/mir_perception/multimodal_object_recognition/recognizer/rgb/rtt_detector/dataset")
     model_dir = rospy.get_param("/mir_perception/multimodal_object_recognition/recognizer/rgb/rtt_detector/model_dir")
     weights = os.path.join(roslib.packages.get_pkg_dir("mir_rgb_object_recognition_models"),
-                           'common', 'models', classifier_name, dataset, "atwork.pt")
+                           'common', 'models', classifier_name, dataset, "atwork_obb.pt")
     object_recognizer = RTTObjectTracker(
         weights=weights, debug_mode=True)
     rospy.loginfo("RTT Recognizer is ready using %s : %s , dataset: %s ",
