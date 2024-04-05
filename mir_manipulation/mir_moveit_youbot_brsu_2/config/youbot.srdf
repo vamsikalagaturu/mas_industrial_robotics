@@ -134,11 +134,11 @@
 <!--Stage places in the yb2 configuration Robocup 2023 -->
 
     <group_state name="platform_left" group="arm_1">
-        <joint name="arm_joint_1" value="3.58103" />
-        <joint name="arm_joint_2" value="1.35689" />
-        <joint name="arm_joint_3" value="-1.06395" />
-        <joint name="arm_joint_4" value="3.22434" />
-        <joint name="arm_joint_5" value="2.80071" />
+        <joint name="arm_joint_1" value="3.59504" />
+        <joint name="arm_joint_2" value="1.38668" />
+        <joint name="arm_joint_3" value="-1.10708" />
+        <joint name="arm_joint_4" value="3.23801" />
+        <joint name="arm_joint_5" value="2.82027" />
     </group_state>
 
     <group_state name="platform_left_pre" group="arm_1">

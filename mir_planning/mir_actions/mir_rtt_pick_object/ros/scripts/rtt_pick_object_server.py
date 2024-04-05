@@ -70,6 +70,7 @@ class WaitForObject(smach.State):
             current_state="WaitForObject", text="waiting for object"
         )
 
+        # TODO: 0.75 is empirical value. This value will depend on object , radius of rotation and might also depend on orientation for large object. Add a config file for this.
         userdata.time_taken = rospy.Time.now().to_sec()
         if rospy.Time.now().to_sec() > userdata.time - 0.75: 
             return "failed"
