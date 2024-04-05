@@ -385,33 +385,114 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
       {
         object.shape.shape = object.shape.OTHER;
       }
-      // Get ROI
-      sensor_msgs::RegionOfInterest roi_2d = object.roi;
-      const cv::Rect2d rect2d(roi_2d.x_offset, roi_2d.y_offset, roi_2d.width, roi_2d.height);
 
-      if (debug_mode_)
+      double len_diag = 0.0;
+
+      mas_perception_msgs::BoundingBox bbox;
+      sensor_msgs::RegionOfInterest roi_2d;
+      cv::Mat mask;
+      // if object category is atwork, then get bounding box
+      if (obj_category_ == "atwork")
       {
-        cv::Point pt1;
-        cv::Point pt2;
+        // Get bounding box
+        bbox = object.bounding_box;
+        
+        if (debug_mode_)
+        {
+          // draw oriented bounding box
+          cv::Point2f vertices[4];
+          for (int j = 0; j < 4; j++)
+          {
+            vertices[j].x = bbox.vertices[j].x;
+            vertices[j].y = bbox.vertices[j].y;
+          }
 
-        pt1.x = roi_2d.x_offset;
-        pt1.y = roi_2d.y_offset;
-        pt2.x = roi_2d.x_offset + roi_2d.width;
-        pt2.y = roi_2d.y_offset + roi_2d.height;
-
-        try{
-          // draw bbox
-          cv::rectangle(cv_image->image, pt1, pt2, cv::Scalar(0, 255, 0), 1, 8, 0);
-          // add label
-          cv::putText(cv_image->image, object.name, cv::Point(pt1.x, pt2.y),
-                cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(0, 255, 0), 1);
+          try{
+            // draw bbox
+            cv::line(cv_image->image, vertices[0], vertices[1], cv::Scalar(0, 255, 0), 1, 8);
+            cv::line(cv_image->image, vertices[1], vertices[2], cv::Scalar(0, 255, 0), 1, 8);
+            cv::line(cv_image->image, vertices[2], vertices[3], cv::Scalar(0, 255, 0), 1, 8);
+            cv::line(cv_image->image, vertices[3], vertices[0], cv::Scalar(0, 255, 0), 1, 8);
+            // add label
+            cv::putText(cv_image->image, object.name, cv::Point(vertices[0].x, vertices[0].y),
+                  cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(0, 255, 0), 1);
+          }
+          catch (...) {
+            ROS_WARN("could not draw bounding boxes.");
+          }
         }
-        catch (...) {
-          ROS_WARN("could not draw bounding boxes.");
+
+        // Remove large 2d misdetected bbox (misdetection)
+        geometry_msgs::Vector3 dim = bbox.dimensions;
+        len_diag = sqrt(powf(dim.x, 2) + powf(dim.y, 2));
+      }
+      else if (obj_category_ == "cavity")
+      {
+        // get the segment mask
+        sensor_msgs::Image mask_img = object.mask;
+
+        cv_bridge::CvImagePtr cv_mask_img;
+        try {
+          cv_mask_img = cv_bridge::toCvCopy(mask_img, sensor_msgs::image_encodings::MONO8);
+          mask = cv_mask_img->image;
+          // get the bounding box of the mask
+          cv::Rect bbox = cv::boundingRect(mask);
+          
+          // get the diagonal length of the bounding box
+          len_diag = sqrt(powf(bbox.width, 2) + powf(bbox.height, 2));
+        }
+        catch (cv_bridge::Exception& e) {
+          ROS_ERROR("cv_bridge exception: %s", e.what());
+        }
+
+        if (debug_mode_)
+        {
+            // overlay the mask on the cv_image for visualization with random color
+            cv::Mat mask_rgb;
+            cv::cvtColor(mask, mask_rgb, cv::COLOR_GRAY2BGR);
+            cv::Mat mask_rgb_resized;
+            cv::resize(mask_rgb, mask_rgb_resized, cv::Size(cv_image->image.cols, cv_image->image.rows));
+            cv::addWeighted(cv_image->image, 0.5, mask_rgb_resized, 0.5, 0.0, cv_image->image);
+
+            // add label
+            // get the centroid of the mask
+            cv::Moments mu = cv::moments(mask, true);
+            cv::Point centroid(mu.m10 / mu.m00, mu.m01 / mu.m00);
+            cv::putText(cv_image->image, object.name, centroid,
+                  cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(0, 255, 0), 1);
         }
       }
-      // Remove large 2d misdetected bbox (misdetection)
-      double len_diag = sqrt(powf(roi_2d.width, 2) + powf(roi_2d.height, 2));
+      else
+      {
+        // Get ROI
+        roi_2d = object.roi;
+        const cv::Rect2d rect2d(roi_2d.x_offset, roi_2d.y_offset, roi_2d.width, roi_2d.height);
+
+        if (debug_mode_)
+        {
+          cv::Point pt1;
+          cv::Point pt2;
+
+          pt1.x = roi_2d.x_offset;
+          pt1.y = roi_2d.y_offset;
+          pt2.x = roi_2d.x_offset + roi_2d.width;
+          pt2.y = roi_2d.y_offset + roi_2d.height;
+
+          try{
+            // draw bbox
+            cv::rectangle(cv_image->image, pt1, pt2, cv::Scalar(0, 255, 0), 1, 8, 0);
+            // add label
+            cv::putText(cv_image->image, object.name, cv::Point(pt1.x, pt2.y),
+                  cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(0, 255, 0), 1);
+          }
+          catch (...) {
+            ROS_WARN("could not draw bounding boxes.");
+          }
+        }
+
+        // Remove large 2d misdetected bbox (misdetection)
+        len_diag = sqrt(powf(roi_2d.width, 2) + powf(roi_2d.height, 2));
+      }
 
       // check if object name has container
       bool is_container = false;
@@ -424,9 +505,27 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
       if ((len_diag > rgb_bbox_min_diag_ && len_diag < rgb_bbox_max_diag_) || is_container)
       {
         PointCloud::Ptr cloud_roi(new PointCloud);
-        bool getROISuccess = mpu::pointcloud::getPointCloudROI(roi_2d, cloud_, cloud_roi, 
+        bool getROISuccess = false;
+        if (obj_category_ == "atwork")
+        {
+          getROISuccess = mpu::pointcloud::getPointCloudROI(bbox, cloud_, cloud_roi, 
                                                          rgb_roi_adjustment_, 
                                                          rgb_cluster_remove_outliers_);
+        }
+        else if (obj_category_ == "cavity")
+        {
+          getROISuccess = mpu::pointcloud::getPointCloudROI(mask, cloud_, cloud_roi, 
+                                                         rgb_roi_adjustment_, 
+                                                         rgb_cluster_remove_outliers_);
+
+        }
+        
+        else
+        {
+          getROISuccess = mpu::pointcloud::getPointCloudROI(roi_2d, cloud_, cloud_roi, 
+                                                         rgb_roi_adjustment_, 
+                                                         rgb_cluster_remove_outliers_);
+        }
         // ToDo: Filter big objects from 2d proposal, if the height is less than 3 mm
         // pcl::PointXYZRGB min_pt;
         // pcl::PointXYZRGB max_pt;
@@ -490,6 +589,16 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
           {
             rgb_object_list.objects[i].pose = pose;
           }
+          // print the rpy pose
+          tf::Quaternion q(
+          rgb_object_list.objects[i].pose.pose.orientation.x,
+          rgb_object_list.objects[i].pose.pose.orientation.y,
+          rgb_object_list.objects[i].pose.pose.orientation.z,
+          rgb_object_list.objects[i].pose.pose.orientation.w);
+          tf::Matrix3x3 m(q);
+          double roll, pitch, yaw;
+          m.getRPY(roll, pitch, yaw);
+          ROS_INFO("[RGB] object %s: orient: [%f, %f, %f]", object.name.c_str(), roll, pitch, yaw);
           rgb_object_list.objects[i].probability = recognized_image_list_.objects[i].probability;
           rgb_object_list.objects[i].database_id = rgb_object_id_;
           rgb_object_list.objects[i].name = recognized_image_list_.objects[i].name;
@@ -769,19 +878,20 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
       }
     }
     
-    if (object_list.objects[i].dimensions.vector.z > 0.09 and 
-        object_list.objects[i].name != "CONTAINER_BOX_RED" &&
-        object_list.objects[i].name != "CONTAINER_BOX_BLUE")
-    {
-      tf::Quaternion q2;
-      q2.setRPY(0.0, -1.57, 0.0);
-      object_list.objects[i].pose.pose.orientation.x = q2.x();
-      object_list.objects[i].pose.pose.orientation.y = q2.y();
-      object_list.objects[i].pose.pose.orientation.z = q2.z();
-      object_list.objects[i].pose.pose.orientation.w = q2.w();
-    }
-    else
-    {
+    // setting the pitch to -90 for vertical grasp
+    // if (object_list.objects[i].dimensions.vector.z > 0.09 and 
+    //     object_list.objects[i].name != "CONTAINER_BOX_RED" &&
+    //     object_list.objects[i].name != "CONTAINER_BOX_BLUE")
+    // {
+    //   tf::Quaternion q2;
+    //   q2.setRPY(0.0, -1.57, 0.0);
+    //   object_list.objects[i].pose.pose.orientation.x = q2.x();
+    //   object_list.objects[i].pose.pose.orientation.y = q2.y();
+    //   object_list.objects[i].pose.pose.orientation.z = q2.z();
+    //   object_list.objects[i].pose.pose.orientation.w = q2.w();
+    // }
+    // else
+    // {
       // Make pose flat
       tf::Quaternion q2 = tf::createQuaternionFromRPY(0.0, change_in_pitch , yaw);
       object_list.objects[i].pose.pose.orientation.x = q2.x();
@@ -808,6 +918,7 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
            else
            {
               ROS_WARN_STREAM("Difference between object height and workspace height is > 3cm");
+              ROS_WARN_STREAM("Object height: " << detected_object_height << " Workspace height: " << scene_segmentation_ros_->getWorkspaceHeight() << "Hight of floor: " << height_of_floor_);
            }
            // do something
            bool is_0cm = std::fabs(detected_object_height - height_of_floor_) < 0.01;
@@ -819,20 +930,24 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
                 ROS_WARN_STREAM("Updating height to 0cm");
                 object_list.objects[i].pose.pose.position.z = height_of_floor_ + object_height_above_workspace_;      
            }
-           if (is_5cm)
+           else if (is_5cm)
            {
                 ROS_WARN_STREAM("Updating height to 5cm");
                 object_list.objects[i].pose.pose.position.z = height_of_floor_ + 0.05 + object_height_above_workspace_;      
            }
-           if (is_10cm)
+           else if (is_10cm)
            {
                 ROS_WARN_STREAM("Updating height to 10cm");
                 object_list.objects[i].pose.pose.position.z = height_of_floor_ + 0.1 + object_height_above_workspace_;      
            }
-           if (is_15cm)
+           else if (is_15cm)
            {
                 ROS_WARN_STREAM("Updating height to 15cm");
                 object_list.objects[i].pose.pose.position.z = height_of_floor_ + 0.15 + object_height_above_workspace_;      
+           }
+           else
+           {
+                ROS_WARN_STREAM("Height is not 0, 5, 10 or 15 cm. Not updating height");
            }
 
       }
@@ -842,7 +957,7 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
                               object_height_above_workspace_;      
       }
 
-    }
+    // }
 
     /*
     // Update workspace height

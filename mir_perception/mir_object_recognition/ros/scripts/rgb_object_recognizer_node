@@ -6,9 +6,11 @@ import numpy as np
 import roslib
 import rospy
 import torch
+import math
 from cv_bridge import CvBridge, CvBridgeError
-from mas_perception_msgs.msg import ImageList, Object, ObjectList
+from mas_perception_msgs.msg import ImageList, Object, ObjectList, BoundingBox
 from sensor_msgs.msg import Image, RegionOfInterest
+from geometry_msgs.msg import Point
 from rgb_object_recognition.yolov7.models.experimental import attempt_load
 from rgb_object_recognition.yolov7.utils.datasets import letterbox
 from rgb_object_recognition.yolov7.utils.general import check_img_size, non_max_suppression, apply_classifier, \
@@ -62,6 +64,7 @@ class RGBObjectRecognizer():
                 try:
                     cv_img = self.cvbridge.imgmsg_to_cv2(
                         img_msg.images[0], "bgr8")
+                    obj_category = None
 
                     if rospy.has_param("/mir_perception/multimodal_object_recognition/obj_category"):
                         obj_category = rospy.get_param("/mir_perception/multimodal_object_recognition/obj_category")
@@ -83,29 +86,48 @@ class RGBObjectRecognizer():
                                                          verbose=False
                                                         )
 
-                        # convert results to numpy array
-                        predictions_np = predictions[0].boxes.numpy()
-                        class_ids = predictions_np.cls
-                        class_names = predictions[0].names
-                        class_labels = [class_names[i] for i in class_ids]
-                        class_scores = predictions_np.conf
-                        class_bboxes = predictions_np.xyxy # x, y, w, h
+                        if obj_category == "cavity":
+                            preds = predictions[0]
+                            class_ids = preds.boxes.cls
+                            class_labels = [self.model.names[int(label)] for label in class_ids.cpu().numpy()]
+                            class_scores = preds.boxes.conf.cpu().numpy()
+                            class_masks = preds.masks
 
-                        bboxes, probs, labels = class_bboxes, class_scores, class_labels
+                            masks, probs, labels = class_masks, class_scores, class_labels
 
-                        for i in range(len(labels)):
-                            result = Object()
-                            result.name = labels[i].upper()
-                            result.probability = probs[i]
-                            roi = RegionOfInterest()
-                            roi.x_offset = int(bboxes[i][0]) # is it center???
-                            roi.y_offset = int(bboxes[i][1])
-                            roi.width = int(bboxes[i][2] - bboxes[i][0])
-                            roi.height = int(bboxes[i][3] - bboxes[i][1])
-                            result.roi = roi
+                            for i in range(len(labels)):
+                                result = Object()
+                                result.name = labels[i].upper()
+                                result.probability = probs[i]
+                                result.mask = self.mask_to_sensor_msgs_image(masks[i].data[0].cpu().numpy())
+                                objects.append(result)
+                        
+                        else:
+                            predictions_cp = predictions[0].obb.cpu()
+                            class_ids = predictions_cp.cls.numpy()
+                            class_labels = [self.model.names[int(label)] for label in class_ids]
+                            class_scores = predictions_cp.conf.numpy()
+                            class_bboxes = predictions_cp.xyxyxyxy.numpy()
 
-                            objects.append(result)
- 
+                            bboxes, probs, labels = class_bboxes, class_scores, class_labels
+
+                            for i in range(len(labels)):
+                                result = Object()
+                                result.name = labels[i].upper()
+                                result.probability = probs[i]
+                                obbbox = BoundingBox()
+                                for j, vertex in enumerate(bboxes[i]):
+                                    point = Point()
+                                    point.x = vertex[0]
+                                    point.y = vertex[1]
+                                    obbbox.vertices.append(point)
+                                length, breadth = self.rectangle_dimensions(obbbox.vertices)
+                                obbbox.dimensions.x = length
+                                obbbox.dimensions.y = breadth
+                                result.bounding_box = obbbox
+
+                                objects.append(result)
+
                         if self.debug:
 
                             # Draw bounding boxes and labels of detections
@@ -128,6 +150,55 @@ class RGBObjectRecognizer():
 
             elif self.net == 'classification':
                 rospy.logwarn("TODO: MobileNet")
+
+    def rectangle_dimensions(self, vertices):
+        """Compute the length and breadth of a rectangle from its vertices."""
+        # Assuming vertices are provided in the order: bottom1, bottom2, top2, top1
+
+        # Extracting coordinates from geometry_msgs.Point
+        bottom1_x, bottom1_y = vertices[0].x, vertices[0].y
+        bottom2_x, bottom2_y = vertices[1].x, vertices[1].y
+        top2_x, top2_y = vertices[2].x, vertices[2].y
+
+        # Compute lengths along x and y axes
+        length = math.sqrt((top2_x - bottom1_x) ** 2 + (top2_y - bottom1_y) ** 2)
+        breadth = math.sqrt((bottom2_x - bottom1_x) ** 2 + (bottom2_y - bottom1_y) ** 2)
+
+        return length, breadth
+
+    def mask_to_sensor_msgs_image(self, mask):
+        """
+        Convert a binary mask (numpy array of 0s and 1s) to a ROS sensor_msgs/Image message.
+
+        Parameters:
+        mask (numpy.ndarray): The binary mask to be converted.
+
+        Returns:
+        sensor_msgs/Image: The populated ROS Image message with the mask data.
+        """
+        # Create a new Image message
+        image_msg = Image()
+
+        # Set the header (optional, but good practice)
+        image_msg.header.stamp = rospy.Time.now()
+        image_msg.header.frame_id = "mask_frame"
+
+        # Set the image dimensions
+        image_msg.height = mask.shape[0]  # Number of rows
+        image_msg.width = mask.shape[1]   # Number of columns
+
+        # Set the encoding to mono8 since it's a single-channel binary mask
+        image_msg.encoding = "mono8"
+
+        # Set dummy values for these fields, necessary for the message but not used
+        image_msg.is_bigendian = 0
+        image_msg.step = image_msg.width  # Full row length in bytes
+
+        # Convert the mask to uint8 and flatten it to a list for the data field
+        mask_uint8 = (mask * 255).astype(np.uint8)  # Convert 1s to 255s for visibility
+        image_msg.data = mask_uint8.flatten().tolist()
+
+        return image_msg
 
     def publish_debug_img(self, debug_img):
         debug_img = np.array(debug_img, dtype=np.uint8)
