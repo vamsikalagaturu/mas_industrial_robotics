@@ -24,10 +24,13 @@
 
         (on M20_100 WS03) 
 
-        (on WRENCH WS04) 
+        (on WRENCH WS03) 
+        
 
         (on BEARING2 TT01) 
         (on S40_40_G TT01) 
+
+        (on HOUSING WS04)
 
         (on F20_20_G WS05) 
 
@@ -60,6 +63,8 @@
 
             (on BEARING2 SH01) 
             (on S40_40_G SH01) 
+
+            (on HOUSING WS01)
 
             (in F20_20_G PP01_CAVITY-00) 
             (in M20 PP01_CAVITY-00) 
