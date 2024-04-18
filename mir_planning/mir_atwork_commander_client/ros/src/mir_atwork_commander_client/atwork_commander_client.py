@@ -76,7 +76,7 @@ class AtworkCommanderClient(object):
 
         # populate instances
         objects = [obj_dict["object_full_name"] for obj_dict in obj_dicts]
-        locations = [workstation.workstation_name for workstation in task.arena_start_state]
+        locations = [workstation.name for workstation in task.arena_start_state]
 
         instances = {"object": objects, "location": locations}
         # print(instances)
@@ -96,9 +96,9 @@ class AtworkCommanderClient(object):
         Parse the task msg and change it to TT evertime
         """
         for start_state in taskmsg.arena_start_state:
-            start_state.workstation_name = start_state.workstation_name.replace("RT","TT")
+            start_state.name = start_state.name.replace("RT","TT")
         for goal_state in taskmsg.arena_target_state:
-            goal_state.workstation_name = goal_state.workstation_name.replace("RT","TT")
+            goal_state.name = goal_state.name.replace("RT","TT")
 
         return taskmsg
 
@@ -315,7 +315,7 @@ class AtworkCommanderClient(object):
 
                 obj_dict = {
                         "object": object_name,
-                        "location": workstation.workstation_name,
+                        "location": workstation.name,
                         "target": target_name,
                         "decoy": obj.decoy
                 }

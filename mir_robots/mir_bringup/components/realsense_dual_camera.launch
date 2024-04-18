@@ -2,7 +2,8 @@
 <launch>
 
     <arg name="serial_no_camera1" default="919122072278"/> 
-    <arg name="serial_no_camera2" default="108322073177"/>
+    <!-- <arg name="serial_no_camera2" default="108322073177"/> -->
+    <arg name="serial_no_camera2" default="827112070805"/>
     <!-- <arg name="serial_no_camera2" default="827312073531"/>  -->
 
     <arg name="camera1" default="tower_cam3d_front"/>
@@ -61,7 +62,20 @@
             <arg name="clip_distance"         value="$(arg clip_distance)"/>
             <arg name="ordered_pc"            value="$(arg ordered_pc)"/>
             <arg name="publish_tf"             value="false" />
+            <arg name="depth_fps"               value="60" />
+            <arg name="color_fps"               value="60" />
         </include>
+
+        <rosparam>
+            /tower_cam3d_front/stereo_module/enable_auto_exposure: false
+            /tower_cam3d_front/stereo_module/hdr_enabled: false
+            /tower_cam3d_front/stereo_module/exposure: 850
+            /tower_cam3d_front/stereo_module/laser_power: 360
+
+            /tower_cam3d_front/spatial/holes_fill: 2
+
+            /tower_cam3d_front/hole_filling/holes_fill: 2
+        </rosparam>
 
         <include if="$(arg rgb_processing)"
              file="$(find rgbd_launch)/launch/includes/rgb.launch.xml">
