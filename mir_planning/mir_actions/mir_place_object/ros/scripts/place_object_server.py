@@ -35,6 +35,7 @@ from brics_actuator.msg import JointPositions, JointValue
 from sensor_msgs.msg import JointState
 import numpy as np
 import tf
+
 class MoveArmUp(smach.State):
 
     def __init__(self):
@@ -389,13 +390,14 @@ class PublishObjectPose(smach.State):
             if height_from_base > nearest_pose.pose.position.z:
                 nearest_pose.pose.position.z = height_from_base
             nearest_pose.pose.position.z += rospy.get_param("/mir_perception/empty_space_detector/object_height_above_workspace") # adding the height of the object above the workspace Should be change for vertical object
+            nearest_pose.pose.position.z += -0.01
 
             q_with_yaw = tf.transformations.quaternion_from_euler(0,0,np.pi/3)
             nearest_pose.pose.orientation.x = q_with_yaw[0]
             nearest_pose.pose.orientation.y = q_with_yaw[1]
             nearest_pose.pose.orientation.z = q_with_yaw[2]
             nearest_pose.pose.orientation.w = q_with_yaw[3]
-            print("place_pose_quaternion", nearest_pose.pose.orientation)
+            # print("place_pose_quaternion", nearest_pose.pose.orientation)
             print("Publishing single pose to pregrasp planner")
             print("----------------------------------")
 
