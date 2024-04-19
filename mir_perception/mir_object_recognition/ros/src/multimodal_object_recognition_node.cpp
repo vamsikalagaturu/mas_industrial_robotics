@@ -985,6 +985,12 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
     {
       mm_object_recognition_utils_->adjustAxisBoltPose(object_list.objects[i]);
     }
+
+    // update pose for Wrench
+    if (object_list.objects[i].name == "WRENCH")
+    {
+      object_list.objects[i].pose.pose.position.z -= 0.01;
+    }
   }
 }
 
