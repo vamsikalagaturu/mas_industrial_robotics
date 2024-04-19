@@ -235,7 +235,7 @@ def main():
 
         smach.StateMachine.add(
             "OPEN_GRIPPER",
-            gms.control_gripper(-1.4),
+            gms.control_gripper(-1.75),
             transitions={"succeeded": "SETUP_OBJECT_POSE_PICK",
                          "timeout": "SETUP_OBJECT_POSE_PICK"},
         )

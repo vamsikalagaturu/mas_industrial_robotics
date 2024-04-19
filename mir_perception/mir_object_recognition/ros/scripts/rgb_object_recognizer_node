@@ -136,6 +136,11 @@ class RGBObjectRecognizer():
                             bboxes, probs, labels = class_bboxes, class_scores, class_labels
 
                             for i in range(len(labels)):
+                                if labels[i].upper() == "CONTAINER_BLUE":
+                                    labels[i] = "CONTAINER_BOX_BLUE"
+                                elif labels[i].upper() == "CONTAINER_RED":
+                                    labels[i] = "CONTAINER_BOX_RED"
+
                                 result = Object()
                                 result.name = labels[i].upper()
                                 result.probability = probs[i]

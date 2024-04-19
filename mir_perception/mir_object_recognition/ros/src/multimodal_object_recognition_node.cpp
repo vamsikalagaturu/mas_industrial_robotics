@@ -496,6 +496,7 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
 
       // check if object name has container
       bool is_container = false;
+      ROS_WARN("Object name: %s", object.name.c_str());
       if (object.name == "CONTAINER_BOX_BLUE" || object.name == "CONTAINER_BOX_RED")
       {
         ROS_INFO("Found container object %s", object.name.c_str());
@@ -989,7 +990,7 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
     // update pose for Wrench
     if (object_list.objects[i].name == "WRENCH")
     {
-      object_list.objects[i].pose.pose.position.z -= 0.01;
+      object_list.objects[i].pose.pose.position.z -= 0.005;
     }
   }
 }

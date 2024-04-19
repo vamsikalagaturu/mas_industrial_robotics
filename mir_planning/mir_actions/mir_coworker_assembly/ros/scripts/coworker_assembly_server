@@ -126,7 +126,7 @@ def main():
     with sm:
         smach.StateMachine.add(
             "MOVE_TO_PICK_LOCATION",
-            gas.move_base("WS02", timeout=60.0),
+            gas.move_base("WS09", timeout=60.0),
             transitions={
                 "success": "PERCEIVE_LOCATION",
                 "failed": "MOVE_TO_PICK_LOCATION",
@@ -185,7 +185,7 @@ def main():
         
         smach.StateMachine.add(
             "MOVE_TO_UNSTAGE_LOCATION",
-            gas.move_base("WS04", timeout=60.0),
+            gas.move_base("WS08", timeout=60.0),
             transitions={
                 "success": "UNSTAGE_OBJECT_LEFT",
                 "failed": "MOVE_TO_UNSTAGE_LOCATION",
@@ -203,7 +203,7 @@ def main():
        
         smach.StateMachine.add(
             "PLACE_OBJECT_LEFT",
-            gas.place_object("WS04"),
+            gas.place_object("WS08"),
             transitions={
                 "success": "UNSTAGE_OBJECT_MIDDLE",
                 "failed": "OVERALL_FAILED",
@@ -221,7 +221,7 @@ def main():
        
         smach.StateMachine.add(
             "PLACE_OBJECT_MIDDLE",
-            gas.place_object("WS04"),
+            gas.place_object("WS08"),
             transitions={
                 "success": "UNSTAGE_OBJECT_RIGHT",
                 "failed": "OVERALL_FAILED",
@@ -239,7 +239,7 @@ def main():
 
         smach.StateMachine.add(
             "PLACE_OBJECT_RIGHT",
-            gas.place_object("WS04"),
+            gas.place_object("WS08"),
             transitions={
                 "success": "CHECK_HUMAN_SIGNAL",
                 "failed": "OVERALL_FAILED",
@@ -251,7 +251,7 @@ def main():
             gbs.send_and_wait_events_combined(
                 event_in_list=[("/mir_perception/gesture_recognition/event_in", "e_start")],
                 event_out_list=[("/mir_perception/gesture_recognition/event_out", "e_done", True)],
-                timeout_duration=60,
+                timeout_duration=40,
             ),
             transitions={
                 "success": "PUBLISH_REFERENCE_FRAME",
@@ -302,7 +302,7 @@ def main():
         
         smach.StateMachine.add(
             "MOVE_TO_FINAL_LOCATION",
-            gas.move_base("WS01", timeout=60.0),
+            gas.move_base("WS09", timeout=60.0),
             transitions={
                 "success": "UNSTAGE_ASSEMBLED_OBJECT",
                 "failed": "MOVE_TO_UNSTAGE_LOCATION",
@@ -320,7 +320,7 @@ def main():
        
         smach.StateMachine.add(
             "PLACE_ASSEMBLED_OBJECT",
-            gas.place_object("WS01"),
+            gas.place_object("WS09"),
             transitions={
                 "success": "OVERALL_SUCCESS",
                 "failed": "OVERALL_FAILED",

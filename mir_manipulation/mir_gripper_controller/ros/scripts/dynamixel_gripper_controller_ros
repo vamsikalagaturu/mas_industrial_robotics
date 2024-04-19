@@ -53,7 +53,7 @@ class GripperController:
 
         if command > 1.0:
             command = 1.0
-        elif command < -1.5:
+        elif command < -1.76:
             command = 0.0
 
         if command == 1.0:
@@ -66,7 +66,7 @@ class GripperController:
         elif command > 0.0 and command < 1.0:
             rospy.logdebug('Moving the gripper to a specific position.')
             json_command['command'] = command
-        elif command < 0.0 and command > -1.5:
+        elif command < 0.0 and command > -1.76:
             rospy.logdebug('Opening the gripper above and beyond.')
             json_command['command'] = command
 
