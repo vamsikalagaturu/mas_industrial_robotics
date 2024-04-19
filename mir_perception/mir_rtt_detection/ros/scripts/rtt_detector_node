@@ -121,10 +121,10 @@ class RTTObjectTracker():
             self.object_name = self.object_name.split("-")[0]
 
             # Subscribe to image topic
-            self.sub_img = message_filters.Subscriber("/tower_cam3d_front/rgb/image_raw", Image)#, self.image_recognition_cb)
+            self.sub_img = message_filters.Subscriber("/tower_cam3d_front/color/image_raw", Image)#, self.image_recognition_cb)
 
             # subscribe to point cloud topic
-            self.sub_point_cloud = message_filters.Subscriber("/tower_cam3d_front/depth_registered/points", PointCloud2)#, self.point_cloud_cb)
+            self.sub_point_cloud = message_filters.Subscriber("/tower_cam3d_front/depth/color/points", PointCloud2)#, self.point_cloud_cb)
 
             # synchronize image and point cloud
             self.ts = message_filters.ApproximateTimeSynchronizer([self.sub_img, self.sub_point_cloud], queue_size=10, slop=0.1)

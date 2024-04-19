@@ -38,8 +38,8 @@
 
 ### In
 - `/mir_perception/rtt/event_in`
-- `/tower_cam3d_front/rgb/image_raw`
-- `/tower_cam3d_front/depth_registered/points`
+- `/tower_cam3d_front/color/image_raw`
+- `/tower_cam3d_front/depth/color/points`
 
 ### Out
 - `/mir_perception/rtt/event_out`

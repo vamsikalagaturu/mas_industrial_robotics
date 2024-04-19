@@ -87,19 +87,43 @@ class RGBObjectRecognizer():
                                                         )
 
                         if obj_category == "cavity":
-                            preds = predictions[0]
-                            class_ids = preds.boxes.cls
-                            class_labels = [self.model.names[int(label)] for label in class_ids.cpu().numpy()]
-                            class_scores = preds.boxes.conf.cpu().numpy()
-                            class_masks = preds.masks
+                            # # Uncomment to run segmention model
+                            # preds = predictions[0]
+                            # class_ids = preds.boxes.cls
+                            # class_labels = [self.model.names[int(label)] for label in class_ids.cpu().numpy()]
+                            # class_scores = preds.boxes.conf.cpu().numpy()
+                            # class_masks = preds.masks
 
-                            masks, probs, labels = class_masks, class_scores, class_labels
+                            # masks, probs, labels = class_masks, class_scores, class_labels
+
+                            # for i in range(len(labels)):
+                            #     result = Object()
+                            #     result.name = labels[i].upper()
+                            #     result.probability = probs[i]
+                            #     result.mask = self.mask_to_sensor_msgs_image(masks[i].data[0].cpu().numpy())
+                            #     objects.append(result)
+
+                            # convert results to numpy array
+                            predictions_np = predictions[0].boxes.numpy()
+                            class_ids = predictions_np.cls
+                            class_names = predictions[0].names
+                            class_labels = [class_names[i] for i in class_ids]
+                            class_scores = predictions_np.conf
+                            class_bboxes = predictions_np.xyxy # x, y, w, h
+
+                            bboxes, probs, labels = class_bboxes, class_scores, class_labels
 
                             for i in range(len(labels)):
                                 result = Object()
                                 result.name = labels[i].upper()
                                 result.probability = probs[i]
-                                result.mask = self.mask_to_sensor_msgs_image(masks[i].data[0].cpu().numpy())
+                                roi = RegionOfInterest()
+                                roi.x_offset = int(bboxes[i][0]) # is it center???
+                                roi.y_offset = int(bboxes[i][1])
+                                roi.width = int(bboxes[i][2] - bboxes[i][0])
+                                roi.height = int(bboxes[i][3] - bboxes[i][1])
+                                result.roi = roi
+
                                 objects.append(result)
                         
                         else:

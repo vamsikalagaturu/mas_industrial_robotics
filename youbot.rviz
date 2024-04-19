@@ -304,7 +304,7 @@ Visualization Manager:
               Size (Pixels): 3
               Size (m): 0.0199999996
               Style: Points
-              Topic: /arm_cam3d/depth_registered/points
+              Topic: /arm_cam3d/depth/color/points
               Unreliable: false
               Use Fixed Frame: true
               Use rainbow: true
@@ -425,7 +425,7 @@ Visualization Manager:
               Value: true
             - Class: rviz/Image
               Enabled: false
-              Image Topic: /arm_cam3d/rgb/image_raw
+              Image Topic: /arm_cam3d/color/image_raw
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -617,7 +617,7 @@ Visualization Manager:
           Displays:
             - Class: rviz/Image
               Enabled: false
-              Image Topic: /arm_cam3d/rgb/image_raw
+              Image Topic: /arm_cam3d/color/image_raw
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -664,7 +664,7 @@ Visualization Manager:
               Size (Pixels): 3
               Size (m): 0.00999999978
               Style: Points
-              Topic: /arm_cam3d/depth_registered/points
+              Topic: /arm_cam3d/depth/color/points
               Unreliable: false
               Use Fixed Frame: true
               Use rainbow: true

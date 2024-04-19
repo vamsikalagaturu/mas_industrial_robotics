@@ -15,7 +15,7 @@
 
         <node pkg="mir_ppt_detection" type="ppt_detector" name="ppt_detector" output="screen">
 
-            <remap from="~points" to="/$(arg camera_name)/depth_registered/points"/>
+            <remap from="~points" to="/$(arg camera_name)/depth/color/points"/>
             <remap from="~output_cavity" to="/mcr_perception/cavity_pose_selector/cavity" />
             <remap from="~event_in" to="/mcr_perception/cavity_finder/input/event_in" />
             <remap from="~event_out" to="/mcr_perception/cavity_finder/output/event_out" />

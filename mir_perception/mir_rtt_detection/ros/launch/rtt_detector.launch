@@ -12,7 +12,7 @@
       <param name="classifier" value="$(arg classifier)" type="str" />
       <param name="dataset" value="$(arg dataset)" type="str" />
       <param name="model_dir" value="$(arg model_dir)" type="str" />
-      <remap from="~input/images" to="/tower_cam3d_front/rgb/image_raw" />
+      <remap from="~input/images" to="/tower_cam3d_front/color/image_raw" />
       <remap from="~output/object_list" to="/mir_perception/multimodal_object_recognition/recognizer/rgb/output/rtt_object_list"/>
     </node>
   </group>

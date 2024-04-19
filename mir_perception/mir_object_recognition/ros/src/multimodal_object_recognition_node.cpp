@@ -426,7 +426,7 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
         geometry_msgs::Vector3 dim = bbox.dimensions;
         len_diag = sqrt(powf(dim.x, 2) + powf(dim.y, 2));
       }
-      else if (obj_category_ == "cavity")
+      else if (obj_category_ == "old")
       {
         // get the segment mask
         sensor_msgs::Image mask_img = object.mask;
@@ -462,7 +462,7 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
                   cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(0, 255, 0), 1);
         }
       }
-      else
+      else if (obj_category_ == "cavity")
       {
         // Get ROI
         roi_2d = object.roi;
@@ -512,7 +512,7 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
                                                          rgb_roi_adjustment_, 
                                                          rgb_cluster_remove_outliers_);
         }
-        else if (obj_category_ == "cavity")
+        else if (obj_category_ == "old")
         {
           getROISuccess = mpu::pointcloud::getPointCloudROI(mask, cloud_, cloud_roi, 
                                                          rgb_roi_adjustment_, 
@@ -520,7 +520,7 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
 
         }
         
-        else
+        else if (obj_category_ == "cavity")
         {
           getROISuccess = mpu::pointcloud::getPointCloudROI(roi_2d, cloud_, cloud_roi, 
                                                          rgb_roi_adjustment_, 
@@ -589,6 +589,12 @@ void MultimodalObjectRecognitionROS::recognizeCloudAndImage()
           {
             rgb_object_list.objects[i].pose = pose;
           }
+
+          if (obj_category_ == "cavity")
+          {
+            rgb_object_list.objects[i].pose.pose.position.x += 0.02;
+          }
+
           // print the rpy pose
           tf::Quaternion q(
           rgb_object_list.objects[i].pose.pose.orientation.x,

@@ -206,7 +206,7 @@ void EmptySpaceDetector::findEmptySpacesOnPlane(const PointCloud::Ptr &plane,
       }
     }
     if (success) {
-      ROS_INF_STREAM("Pose: " << samples[0].x << " " << samples[0].y << " " << samples[0].z);
+      ROS_INFO_STREAM("Pose: " << samples[0].x << " " << samples[0].y << " " << samples[0].z);
       ROS_INFO_STREAM("Found solution at attempt: " << attempts);
       for (PointT p : samples) {
         geometry_msgs::Pose pose;

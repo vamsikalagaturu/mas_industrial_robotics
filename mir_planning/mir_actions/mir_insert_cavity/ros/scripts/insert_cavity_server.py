@@ -229,9 +229,7 @@ class ppt_wiggle_arm(smach.State):
                 current_time = rospy.Time.now().to_sec()
                 self.arm_velocity_pub.publish(message)
                 rospy.sleep(0.1)
-                print("wiggle yaw: ", wiggle_yaw)
                 current_yaw = self.current_joint_positions[-1]
-                print(np.rad2deg(abs(current_yaw - initial_yaw)))
                 # check for timeout also and break after 5 seconds
                 # limits: 5.58 and 0.16
                 if (current_yaw >= 5.4) or (current_yaw <= 0.28):
@@ -285,8 +283,6 @@ class ppt_wiggle_arm(smach.State):
                 self.arm_velocity_pub.publish(message)
                 current_time = rospy.Time.now().to_sec()
                 rospy.sleep(0.05)
-                print("travel time: ", travel_time)
-                print(abs(current_time - initial_time))
                 if abs(current_time - initial_time) >= travel_time: # no feedback from the arm just wait for the travel time
                     rospy.loginfo("Travel time reached")
                     self.stop_arm()

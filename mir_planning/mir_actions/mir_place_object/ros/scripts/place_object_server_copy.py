@@ -93,7 +93,6 @@ class DefineShelfPlacePose(smach.State):
     def __init__(self):
         smach.State.__init__(self, 
                              outcomes=['succeeded', 'failed'],
-                             input_keys=["goal"],
                              output_keys=['move_arm_to'])
         self.pose_list_sh01 = ["shelf_place_1", "shelf_place_2"]
         self.pose_list_sh02 = ["shelf_place_3", "shelf_place_4"]
@@ -607,17 +606,8 @@ def main():
         smach.StateMachine.add(
             "OPEN_GRIPPER_SHELF",
             gms.control_gripper("open"),
-            transitions={"succeeded": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
-                         "timeout": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT"}
-        )
-
-        smach.StateMachine.add(
-            "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
-            gms.move_arm("shelf_intermediate"),
-            transitions={
-                    "succeeded": "MOVE_BACKWARD",
-                    "failed": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
-            },
+            transitions={"succeeded": "MOVE_BACKWARD",
+                         "timeout": "MOVE_BACKWARD"}
         )
 
         smach.StateMachine.add(
@@ -646,13 +636,20 @@ def main():
                 timeout_duration=10,
             ),
             transitions={
-                "success": "MOVE_ARM_TO_NEUTRAL",
+                "success": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
                 "timeout": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
                 "failure": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
             },
         )
 
-        
+        smach.StateMachine.add(
+            "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
+            gms.move_arm("shelf_intermediate"),
+            transitions={
+                    "succeeded": "MOVE_ARM_TO_NEUTRAL",
+                    "failed": "MOVE_ARM_TO_SHELF_INTERMEDIATE_RETRACT",
+            },
+        )
 
 # below states are for default pose placing
 

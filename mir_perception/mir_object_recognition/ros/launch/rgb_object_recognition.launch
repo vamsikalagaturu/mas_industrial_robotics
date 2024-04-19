@@ -16,7 +16,7 @@
       <remap from="~output/object_list" to="/mir_perception/multimodal_object_recognition/recognizer/rgb/output/object_list"/>
       <rosparam param="model_category">
         - atwork_obb
-        - cavity_seg
+        - cavity
       </rosparam>
     </node>
   </group>

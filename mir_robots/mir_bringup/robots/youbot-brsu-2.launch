@@ -33,7 +33,11 @@
   <include file="$(find mir_gripper_controller)/ros/launch/dynamixel_gripper.launch" />
 
   <!-- top camera -->
-  <include file="$(find mir_bringup)/components/realsense_dual_camera.launch" />
+  <!-- <include file="$(find mir_bringup)/components/realsense_dual_camera.launch" /> -->
+
+  <!-- <include file="$(find mir_bringup)/components/realsense_camera.launch" /> -->
+
+  <include file="$(find mir_bringup)/components/realsense_dual_camera_go24.launch" />
 
   <!-- camera at arm end effector -->
   <!-- <include file="$(find mir_bringup)/components/realsense_camera.launch">

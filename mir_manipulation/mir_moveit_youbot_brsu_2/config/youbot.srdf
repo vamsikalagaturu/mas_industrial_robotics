@@ -83,7 +83,7 @@
     </group_state>
      <group_state name="look_at_workspace_left" group="arm_1">
         <joint name="arm_joint_1" value="1.6655" />
-        <joint name="arm_joint_2" value="0.8557" />barrier_tape
+        <joint name="arm_joint_2" value="0.8557" />
     </group_state>
     <group_state name="look_straight_at_workspace_left" group="arm_1">
          <joint name="arm_joint_1" value="1.6739" />
@@ -346,36 +346,36 @@
 
     <!--Original Shelf poses -->
     <group_state name="shelf_place_3" group="arm_1"> 
-        <joint name="arm_joint_1" value="2.04249" />
-        <joint name="arm_joint_2" value="1.53312" />
-        <joint name="arm_joint_3" value="-2.1505" />
-        <joint name="arm_joint_4" value="3.09608" />
-        <joint name="arm_joint_5" value="2.97551" />
+        <joint name="arm_joint_1" value="2.08824" />
+        <joint name="arm_joint_2" value="1.35234" />
+        <joint name="arm_joint_3" value="-1.62956" />
+        <joint name="arm_joint_4" value="2.56673" />
+        <joint name="arm_joint_5" value="2.97546" />
     </group_state>
 
     <group_state name="shelf_place_4" group="arm_1">
-        <joint name="arm_joint_1" value="2.46988" />
-        <joint name="arm_joint_2" value="1.53315" />
-        <joint name="arm_joint_3" value="-2.1505" />
-        <joint name="arm_joint_4" value="3.09613" />
-        <joint name="arm_joint_5" value="2.97553" />
+        <joint name="arm_joint_1" value="2.59161" />
+        <joint name="arm_joint_2" value="1.52447" />
+        <joint name="arm_joint_3" value="-1.83617" />
+        <joint name="arm_joint_4" value="2.60779" />
+        <joint name="arm_joint_5" value="2.97597" />
     </group_state>
 
     <!-- New Shelf poses for a weird shelf in german open 2024-->
     <group_state name="shelf_place_1" group="arm_1">
-        <joint name="arm_joint_1" value="2.05891" />
-        <joint name="arm_joint_2" value="1.76362" />
-        <joint name="arm_joint_3" value="-1.89372" />
-        <joint name="arm_joint_4" value="2.69496" />
-        <joint name="arm_joint_5" value="1.33354" />
+        <joint name="arm_joint_1" value="1.9455" />
+        <joint name="arm_joint_2" value="2.01258" />
+        <joint name="arm_joint_3" value="-2.15365" />
+        <joint name="arm_joint_4" value="2.66385" />
+        <joint name="arm_joint_5" value="2.95051" />
     </group_state>
 
     <group_state name="shelf_place_2" group="arm_1">
-        <joint name="arm_joint_1" value="2.62227" />
-        <joint name="arm_joint_2" value="2.0513" />
-        <joint name="arm_joint_3" value="-2.11033" />
-        <joint name="arm_joint_4" value="2.47796" />
-        <joint name="arm_joint_5" value="1.72836" />
+        <joint name="arm_joint_1" value="2.48236" />
+        <joint name="arm_joint_2" value="2.18384" />
+        <joint name="arm_joint_3" value="-2.29106" />
+        <joint name="arm_joint_4" value="2.54111" />
+        <joint name="arm_joint_5" value="3.02748" />
     </group_state>
 
     <group_state name="shelf_pre_grasp_lower" group="arm_1">
