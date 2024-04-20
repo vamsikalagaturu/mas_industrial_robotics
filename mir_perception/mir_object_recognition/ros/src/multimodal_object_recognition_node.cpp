@@ -990,7 +990,31 @@ void MultimodalObjectRecognitionROS::adjustObjectPose(mas_perception_msgs::Objec
     // update pose for Wrench
     if (object_list.objects[i].name == "WRENCH")
     {
-      object_list.objects[i].pose.pose.position.z -= 0.005;
+      bool is_0cm = std::fabs(detected_object_height - height_of_floor_) < 0.01;
+      bool is_5cm = std::fabs(detected_object_height - (height_of_floor_ + 0.05)) < 0.01;
+      bool is_10cm = std::fabs(detected_object_height - (height_of_floor_ + 0.1)) < 0.01;
+      bool is_15cm = std::fabs(detected_object_height - (height_of_floor_ + 0.15)) < 0.01;
+
+      if (is_0cm) 
+      {
+        object_list.objects[i].pose.pose.position.z -= 0.005;
+      }
+
+      if (is_5cm)
+      {
+        object_list.objects[i].pose.pose.position.z -= 0.003;
+      }
+
+      if (is_10cm)
+      {
+        object_list.objects[i].pose.pose.position.z -= 0.001;
+      }
+
+      if (is_15cm)
+      {
+        object_list.objects[i].pose.pose.position.z -= 0.002;
+      }
+
     }
   }
 }
